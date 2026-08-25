@@ -54,9 +54,13 @@ Add `--json` to an `ask` command for the complete structured answer and governan
 python -m telecom_ai --database data/telecom.db serve
 ```
 
+Open `http://127.0.0.1:8765` in a browser to use the responsive Network Intelligence Desk. The dashboard provides guided questions, dataset statistics, direct answers, source-cell evidence, related metrics, and governance indicators.
+
 Endpoints:
 
+- `GET /` — local dashboard
 - `GET /health`
+- `GET /stats`
 - `GET /ask?q=Show%20latest%20MTN%20voice%20subscriptions`
 - `POST /ask` with `{"question": "..."}`
 
@@ -89,4 +93,3 @@ python -m unittest discover -s tests -v
 3. Move the SQLite model to an approved African-hosted PostgreSQL environment if concurrent use is required.
 4. Add a locally hosted or residency-approved language model only as a constrained planner over the read-only query API.
 5. Add signed ingestion manifests, encrypted storage, backup, retention, and independent audit enforcement.
-

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Local evidence-grounded query interface for MTN and AirtelTigo monthly telecom data.">
+  <title>Network Intelligence Desk</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Network Intelligence Desk home">
+        <span class="brand-mark" aria-hidden="true"><span>NI</span></span>
+        <span class="brand-copy">
+          <strong>Network Intelligence</strong>
+          <small>Evidence desk</small>
+        </span>
+      </a>
+      <div class="topbar-actions">
+        <span class="privacy-note"><span class="lock-icon" aria-hidden="true"></span>Local workspace</span>
+        <span class="status-pill" id="serverStatus"><span class="status-dot"></span><span>Connecting</span></span>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="pageTitle">
+        <div class="hero-copy">
+          <p class="eyebrow">Telecom data, grounded in source evidence</p>
+          <h1 id="pageTitle">Ask the network data.</h1>
+          <p class="hero-description">Explore MTN and AirtelTigo monthly reports through a governed query interface. Every answer traces back to its original workbook and cell.</p>
+        </div>
+        <div class="hero-signal" aria-hidden="true">
+          <span class="signal-ring ring-one"></span>
+          <span class="signal-ring ring-two"></span>
+          <span class="signal-ring ring-three"></span>
+          <span class="signal-core"></span>
+        </div>
+      </section>
+
+      <section class="metric-strip" aria-label="Dataset summary">
+        <article class="metric-card">
+          <span class="metric-label">Source workbooks</span>
+          <strong class="metric-value" id="workbookCount">—</strong>
+          <span class="metric-foot">Verified imports</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Metric variants</span>
+          <strong class="metric-value" id="metricCount">—</strong>
+          <span class="metric-foot">Canonical catalogue</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Observations</span>
+          <strong class="metric-value" id="observationCount">—</strong>
+          <span class="metric-foot">Cell-linked records</span>
+        </article>
+        <article class="metric-card metric-card-accent">
+          <span class="metric-label">Coverage</span>
+          <strong class="metric-value metric-value-small" id="coverageRange">—</strong>
+          <span class="metric-foot">Available reporting span</span>
+        </article>
+      </section>
+
+      <div class="workspace-grid">
+        <section class="query-panel" aria-labelledby="queryTitle">
+          <div class="panel-heading">
+            <div>
+              <p class="section-kicker">Analysis workspace</p>
+              <h2 id="queryTitle">What would you like to know?</h2>
+            </div>
+            <span class="shortcut-hint"><kbd>Ctrl</kbd><span>+</span><kbd>Enter</kbd></span>
+          </div>
+
+          <form id="queryForm" class="query-form">
+            <label for="question" class="sr-only">Ask a question about the telecom data</label>
+            <textarea id="question" name="question" rows="4" maxlength="1000" placeholder="For example: Compare MTN and AirtelTigo mobile data subscriptions in July 2026" required></textarea>
+            <div class="query-controls">
+              <span class="character-count"><span id="characterCount">0</span>/1000</span>
+              <button type="submit" class="ask-button" id="askButton">
+                <span class="button-label">Analyse data</span>
+                <span class="button-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </form>
+
+          <div class="suggestions" aria-labelledby="suggestionTitle">
+            <p id="suggestionTitle">Try a guided question</p>
+            <div class="suggestion-list">
+              <button type="button" class="suggestion-chip" data-question="Show the trend in MTN voice subscriptions from January to July 2026">MTN voice trend</button>
+              <button type="button" class="suggestion-chip" data-question="Compare MTN and AirtelTigo mobile data subscriptions in July 2026">Compare operators</button>
+              <button type="button" class="suggestion-chip" data-question="Show the trend in AirtelTigo data subscriptions during 2025">AT data trend</button>
+              <button type="button" class="suggestion-chip" data-question="Show missing reporting months for MTN">Coverage gaps</button>
+              <button type="button" class="suggestion-chip" data-question="Show data quality issues">Data quality</button>
+            </div>
+          </div>
+
+          <div class="result-region" id="resultRegion" aria-live="polite" aria-busy="false">
+            <div class="empty-result" id="emptyResult">
+              <span class="empty-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+              <h3>Your evidence-backed answer will appear here</h3>
+              <p>Ask about a KPI, operator, reporting period, trend, comparison, or known data-quality issue.</p>
+            </div>
+
+            <div class="loading-result" id="loadingResult" hidden>
+              <span class="loader" aria-hidden="true"></span>
+              <div><strong>Reading the evidence</strong><span>Matching metrics and calculating from source records…</span></div>
+            </div>
+
+            <article class="answer-card" id="answerCard" hidden tabindex="-1">
+              <div class="answer-header">
+                <div>
+                  <p class="section-kicker" id="intentLabel">Direct answer</p>
+                  <h3>Analysis result</h3>
+                </div>
+                <button type="button" class="icon-button" id="copyButton" title="Copy answer" aria-label="Copy answer">
+                  <span aria-hidden="true">□</span>
+                </button>
+              </div>
+              <p class="answer-text" id="answerText"></p>
+              <div class="governance-row" id="governanceRow"></div>
+
+              <section class="evidence-section" id="evidenceSection" aria-labelledby="evidenceTitle">
+                <div class="evidence-heading">
+                  <div>
+                    <p class="section-kicker">Traceable sources</p>
+                    <h4 id="evidenceTitle">Evidence trail</h4>
+                  </div>
+                  <span class="evidence-count" id="evidenceCount"></span>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>Operator</th><th>Period</th><th>Reported value</th><th>Source</th></tr></thead>
+                    <tbody id="evidenceBody"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="alternative-section" id="alternativeSection" hidden>
+                <p>Related metrics</p>
+                <div id="alternativeList" class="suggestion-list"></div>
+              </section>
+            </article>
+
+            <div class="error-result" id="errorResult" hidden role="alert">
+              <strong>Unable to complete the query</strong>
+              <span id="errorText">Check that the local server is running and try again.</span>
+            </div>
+          </div>
+        </section>
+
+        <aside class="context-column" aria-label="Workspace context">
+          <section class="context-card data-card">
+            <div class="context-icon database-icon" aria-hidden="true"></div>
+            <p class="section-kicker">Data estate</p>
+            <h2>Monthly operator reports</h2>
+            <p>Structured observations from submitted Excel workbooks, retaining formula and cell provenance.</p>
+            <div class="operator-list" id="operatorList">
+              <span>MTN</span><span>AirtelTigo</span>
+            </div>
+            <dl class="context-facts">
+              <div><dt>Numeric records</dt><dd id="numericCount">—</dd></div>
+              <div><dt>Quality findings</dt><dd id="qualityCount">—</dd></div>
+            </dl>
+          </section>
+
+          <section class="context-card trust-card">
+            <div class="trust-heading">
+              <span class="shield-icon" aria-hidden="true">◇</span>
+              <div><p class="section-kicker">Trust boundary</p><h2>Local by design</h2></div>
+            </div>
+            <ul class="trust-list">
+              <li><span>✓</span>Queries run on this computer</li>
+              <li><span>✓</span>No external model or analytics call</li>
+              <li><span>✓</span>Source evidence stays attached</li>
+              <li><span>✓</span>Human authority remains final</li>
+            </ul>
+          </section>
+
+          <section class="context-card help-card">
+            <p class="section-kicker">Better questions</p>
+            <h2>Be specific</h2>
+            <p>Include an operator, KPI, and reporting period. The system will stop and clarify rather than guess an ambiguous metric.</p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer>
+      <span>Network Intelligence Desk</span>
+      <span>Local evidence service · Human-governed decisions</span>
+    </footer>
+  </div>
+</body>
+</html>
+
