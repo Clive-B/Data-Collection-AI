@@ -1,4 +1,4 @@
-# Telecom Data Query MVP
+# Adinkra Omega Telecom Analytics
 
 This repository contains a local, evidence-grounded query system for the supplied MTN and AirtelTigo monthly-report archives.
 
@@ -13,8 +13,11 @@ It converts mixed `.xls`, `.xlsx`, and `.xlsb` workbooks into a canonical SQLite
 - Local query audit with basic email and phone-number redaction.
 - Governance holds for credential disclosure and escalation for live-network change requests.
 - Local JSON API bound to `127.0.0.1` by default.
+- Derived change, year-over-year, CAGR, range, and robust anomaly statistics.
+- Accessible SVG trend graphs and chart-ready JSON series.
+- OpenAPI 3.1 Action contract for the Adinkra Omega Custom GPT.
 
-The query engine is intentionally not a trained model. It is the reliable semantic and evidence layer required before a language model can safely be added. Its parser chooses approved query parameters; SQLite performs the calculations.
+The query engine is intentionally not a trained model. It is the deterministic semantic, statistical, charting, and evidence layer used by the dashboard and the Adinkra Omega Custom GPT Action. Its parser chooses approved query parameters; SQLite and the analytics module perform the calculations.
 
 ## Requirements
 
@@ -63,8 +66,18 @@ Endpoints:
 - `GET /stats`
 - `GET /ask?q=Show%20latest%20MTN%20voice%20subscriptions`
 - `POST /ask` with `{"question": "..."}`
+- `POST /api/analysis` with `{"question": "..."}` - dashboard analysis, statistics, and SVG graph
+- `GET /openapi.json` - GPT Action schema
+- `POST /api/v1/analysis/query` - authenticated production Action endpoint
+- `GET /api/v1/metrics` - metric catalogue and coverage
+- `GET /api/v1/quality` - aggregated quality findings
+- `GET /privacy` - data-use and analytical-boundary notice
 
-The built-in HTTP server is a local-development interface, not a production deployment. It has no authentication or TLS and therefore must not be exposed beyond localhost.
+The built-in HTTP server is a local-development interface, not a production deployment. Set `TELECOM_API_KEY` to enforce API-key authentication on analytical API routes. The server refuses a non-local bind without that key, but production TLS and other controls must still be supplied by an approved reverse proxy and hosting environment. A production dashboard should sit behind an authenticated proxy that injects the upstream key without exposing it to browser JavaScript.
+
+## Connect Adinkra Omega
+
+See [docs/ADINKRA_GPT_SETUP.md](docs/ADINKRA_GPT_SETUP.md) for deployment prerequisites, the Custom GPT instruction block, Action authentication, and the evaluation set. The public GPT link alone does not provide permission to edit its Action configuration.
 
 ## Data model
 

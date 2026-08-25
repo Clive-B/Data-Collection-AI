@@ -15,6 +15,11 @@ const elements = {
   answerText: document.querySelector("#answerText"),
   intentLabel: document.querySelector("#intentLabel"),
   governanceRow: document.querySelector("#governanceRow"),
+  analysisSection: document.querySelector("#analysisSection"),
+  analysisId: document.querySelector("#analysisId"),
+  chartFrame: document.querySelector("#chartFrame"),
+  statGrid: document.querySelector("#statGrid"),
+  insightList: document.querySelector("#insightList"),
   evidenceSection: document.querySelector("#evidenceSection"),
   evidenceBody: document.querySelector("#evidenceBody"),
   evidenceCount: document.querySelector("#evidenceCount"),
@@ -124,6 +129,53 @@ function renderAlternatives(alternatives) {
   });
 }
 
+function displayValue(value, suffix = "") {
+  if (value === null || value === undefined) return "Not available";
+  return `${new Intl.NumberFormat("en-GH", { maximumFractionDigits: 2 }).format(value)}${suffix}`;
+}
+
+function renderAnalysis(response) {
+  const analysis = response.analysis || {};
+  const statistics = analysis.statistics || [];
+  const insights = analysis.insights || [];
+  const hasAnalysis = Boolean(response.chart_svg && statistics.length);
+  elements.analysisSection.hidden = !hasAnalysis;
+  elements.chartFrame.replaceChildren();
+  elements.statGrid.replaceChildren();
+  elements.insightList.replaceChildren();
+  if (!hasAnalysis) return;
+
+  elements.analysisId.textContent = `Analysis ${response.analysis_id}`;
+  const parsed = new DOMParser().parseFromString(response.chart_svg, "image/svg+xml");
+  const svg = parsed.documentElement;
+  if (svg.nodeName.toLowerCase() === "svg" && !parsed.querySelector("parsererror")) {
+    elements.chartFrame.appendChild(document.importNode(svg, true));
+  }
+
+  statistics.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "stat-card";
+    const title = document.createElement("strong");
+    title.textContent = item.operator;
+    const range = document.createElement("span");
+    range.textContent = `${item.first_period} to ${item.last_period}`;
+    const change = document.createElement("b");
+    change.textContent = displayValue(item.percent_change, "%");
+    const label = document.createElement("small");
+    label.textContent = "Total change";
+    const yoy = document.createElement("small");
+    yoy.textContent = `Latest YoY: ${displayValue(item.latest_year_over_year_percent, "%")}`;
+    card.append(title, range, change, label, yoy);
+    elements.statGrid.appendChild(card);
+  });
+
+  insights.forEach((insight) => {
+    const item = document.createElement("li");
+    item.textContent = insight;
+    elements.insightList.appendChild(item);
+  });
+}
+
 function renderAnswer(response) {
   elements.answerText.textContent = response.answer;
   elements.intentLabel.textContent = intentLabels[response.intent] || "Direct answer";
@@ -134,6 +186,7 @@ function renderAnswer(response) {
   addGovernanceBadge(`${governance.uncertainty_class} uncertainty`, stateClass);
   addGovernanceBadge("Source-grounded");
   addGovernanceBadge("Human authority final");
+  renderAnalysis(response);
   renderEvidence(response.evidence || []);
   renderAlternatives(response.alternatives || []);
   showState("answer");
@@ -144,7 +197,7 @@ async function submitQuestion(question) {
   elements.askButton.disabled = true;
   showState("loading");
   try {
-    const response = await fetch("/api/ask", {
+    const response = await fetch("/api/analysis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question }),
@@ -196,4 +249,3 @@ elements.copyButton.addEventListener("click", async () => {
 showState("empty");
 updateCharacterCount();
 loadWorkspaceStatus();
-

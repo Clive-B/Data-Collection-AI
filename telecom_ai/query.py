@@ -106,7 +106,7 @@ def _period_range(question: str) -> tuple[str | None, str | None]:
     if not years:
         return None, None
     if len(years) >= 2:
-        start_month = month_matches[0] if month_matches else 1
+        start_month = month_matches[0] if len(month_matches) >= 2 else 1
         end_month = month_matches[-1] if month_matches else 12
         return f"{years[0]:04d}-{start_month:02d}", f"{years[-1]:04d}-{end_month:02d}"
     year = years[0]

@@ -19,6 +19,7 @@
         </span>
       </a>
       <div class="topbar-actions">
+        <a class="gpt-link" href="https://chatgpt.com/g/g-6a7d722f50e88191ad84a50a93fa66f3-adinkra-o-nca-regulatory-intelligence-copilot" target="_blank" rel="noopener noreferrer">Open Adinkra &#937;</a>
         <span class="privacy-note"><span class="lock-icon" aria-hidden="true"></span>Local workspace</span>
         <span class="status-pill" id="serverStatus"><span class="status-dot"></span><span>Connecting</span></span>
       </div>
@@ -120,6 +121,19 @@
               <p class="answer-text" id="answerText"></p>
               <div class="governance-row" id="governanceRow"></div>
 
+              <section class="analysis-section" id="analysisSection" hidden aria-labelledby="analysisTitle">
+                <div class="evidence-heading">
+                  <div>
+                    <p class="section-kicker">Calculated from reported values</p>
+                    <h4 id="analysisTitle">Trend graph and analytical findings</h4>
+                  </div>
+                  <span class="evidence-count" id="analysisId"></span>
+                </div>
+                <div class="chart-frame" id="chartFrame" role="img" aria-label="Telecom metric trend chart"></div>
+                <div class="stat-grid" id="statGrid"></div>
+                <ul class="insight-list" id="insightList"></ul>
+              </section>
+
               <section class="evidence-section" id="evidenceSection" aria-labelledby="evidenceTitle">
                 <div class="evidence-heading">
                   <div>
@@ -193,4 +207,3 @@
   </div>
 </body>
 </html>
-

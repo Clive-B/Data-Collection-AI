@@ -63,7 +63,10 @@ class QueryTest(unittest.TestCase):
         self.assertEqual(response["governance"]["release_class"], "R-E")
         self.assertEqual(response["governance"]["release_decision"], "hold")
 
+    def test_single_month_in_multi_year_range_is_end_month(self):
+        response = ask(self.connection, "MTN voice subscriptions trend from 2025 to July 2026")
+        self.assertEqual([item["period"] for item in response["evidence"]], ["2026-01", "2026-07"])
+
 
 if __name__ == "__main__":
     unittest.main()
-

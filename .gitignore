@@ -4,3 +4,5 @@ __pycache__/
 .coverage
 data/
 *.ndjson
+server-*.log
+dashboard-verification.png
