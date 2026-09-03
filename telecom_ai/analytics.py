@@ -13,7 +13,12 @@ from typing import Any
 from .query import ask
 
 
-SERIES_COLOURS = ("#172743", "#d3a33c", "#26735b", "#9a6513", "#334b88")
+OPERATOR_COLOURS = {
+    "MTN": "#ffcb05",
+    "AirtelTigo": "#1976d2",
+    "Telecel": "#e31b23",
+}
+SERIES_COLOURS = ("#172743", "#26735b", "#9a6513", "#334b88")
 
 
 def _month_index(period: str) -> int:
@@ -149,12 +154,16 @@ def _insights(statistics_rows: list[dict[str, Any]]) -> list[str]:
 
 
 def _chart_spec(series: list[dict[str, Any]], metric: str | None) -> dict[str, Any]:
+    coloured_series = [
+        {**item, "colour": OPERATOR_COLOURS.get(item["name"], SERIES_COLOURS[index % len(SERIES_COLOURS)])}
+        for index, item in enumerate(series)
+    ]
     return {
         "type": "line",
         "title": metric or "Telecom metric analysis",
         "x_axis": {"field": "period", "label": "Reporting period"},
         "y_axis": {"field": "value", "label": metric or "Reported value", "zero_baseline": True},
-        "series": series,
+        "series": coloured_series,
         "accessibility_summary": f"Line chart with {len(series)} operator series.",
     }
 
@@ -199,7 +208,7 @@ def chart_svg(chart: dict[str, Any], width: int = 960, height: int = 480) -> str
         if index % label_step == 0 or index == len(periods) - 1:
             svg.append(f'<text x="{x(period):.1f}" y="{height-bottom+25}" text-anchor="middle" fill="#526074" font-family="sans-serif" font-size="11">{html.escape(period)}</text>')
     for index, item in enumerate(series):
-        colour = SERIES_COLOURS[index % len(SERIES_COLOURS)]
+        colour = item.get("colour") or OPERATOR_COLOURS.get(item["name"], SERIES_COLOURS[index % len(SERIES_COLOURS)])
         coordinates = " ".join(f'{x(point["period"]):.1f},{y(float(point["value"])):.1f}' for point in item["points"])
         svg.append(f'<polyline points="{coordinates}" fill="none" stroke="{colour}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>')
         for point in item["points"]:

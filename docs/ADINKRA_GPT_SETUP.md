@@ -1,6 +1,19 @@
-# Adinkra Omega GPT Action setup
+# NCA Adinkra Omega Copilot setup
 
-This repository supplies the read-only analytics tool for the Adinkra Omega NCA Regulatory Intelligence Copilot.
+This repository supplies both the embedded NCA Adinkra Omega Regulatory Intelligence Copilot and its optional Custom GPT Action.
+
+## Embedded platform copilot
+
+The dashboard now reproduces the repository-defined Adinkra Omega behavior directly on the platform. The local deterministic engine remains the numerical source of truth; the OpenAI Responses API supplies only the grounded narrative layer.
+
+Set these variables in the server process:
+
+```text
+OPENAI_API_KEY=<your OpenAI Platform API key>
+OPENAI_MODEL=gpt-5.6-luna
+```
+
+The key is server-side only. The application sends requests with `store: false`, transfers a minimized aggregate evidence package, and blocks external calls for governance holds, credential requests, and live-network action requests. Without the key, the same interface continues to return deterministic local answers.
 
 ## Production prerequisites
 

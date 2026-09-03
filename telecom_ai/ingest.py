@@ -46,30 +46,52 @@ def file_sha256(path: Path) -> str:
 
 
 def _operator_for_archive(path: Path) -> str:
-    return "MTN" if "mtn" in path.name.casefold() else "AirtelTigo"
+    name = normalize_text(path.name)
+    if "mtn" in name:
+        return "MTN"
+    if "telecel" in name or "vodafone" in name:
+        return "Telecel"
+    if "airteltigo" in name or "airtel tigo" in name or "airtel" in name or re.search(r"\bat\b", name):
+        return "AirtelTigo"
+    raise ValueError(
+        f"Could not determine the operator from {path.name!r}. "
+        "Include MTN, AirtelTigo/AT, or Telecel in the filename."
+    )
 
 
-def _extract_archives(archives: Iterable[Path], destination: Path) -> list[tuple[Path, Path, str]]:
-    extracted: list[tuple[Path, Path, str]] = []
-    for archive in archives:
-        operator = _operator_for_archive(archive)
-        target = destination / operator
+def _prepare_sources(sources: Iterable[Path], destination: Path) -> list[tuple[Path, Path, str]]:
+    prepared: list[tuple[Path, Path, str]] = []
+    for index, source in enumerate(sources):
+        operator = _operator_for_archive(source)
+        target = destination / f"{index:04d}-{operator}"
         target.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(archive) as package:
-            for member in package.infolist():
-                member_name = Path(member.filename)
-                if member.is_dir() or member_name.suffix.casefold() not in {".xls", ".xlsx", ".xlsb"}:
-                    continue
-                safe_name = member_name.name
-                output_path = target / safe_name
-                with package.open(member) as source, output_path.open("wb") as output:
-                    shutil.copyfileobj(source, output)
-                extracted.append((archive, output_path, operator))
-    return extracted
+        suffix = source.suffix.casefold()
+        workbook_count = 0
+        if suffix == ".zip":
+            if not zipfile.is_zipfile(source):
+                raise ValueError(f"Invalid ZIP archive: {source.name}")
+            with zipfile.ZipFile(source) as package:
+                for member in package.infolist():
+                    member_name = Path(member.filename)
+                    if member.is_dir() or member_name.suffix.casefold() not in {".xls", ".xlsx", ".xlsb"}:
+                        continue
+                    safe_name = member_name.name
+                    output_path = target / safe_name
+                    with package.open(member) as input_stream, output_path.open("wb") as output:
+                        shutil.copyfileobj(input_stream, output)
+                    workbook_count += 1
+        elif suffix in {".xls", ".xlsx", ".xlsb"}:
+            shutil.copy2(source, target / source.name)
+            workbook_count = 1
+        else:
+            raise ValueError(f"Unsupported input type: {source.name}")
+        if workbook_count:
+            prepared.append((source, target, operator))
+    return prepared
 
 
 def _run_excel_extractor(
-    extracted_root: Path,
+    input_directory: Path,
     archive: Path,
     operator: str,
     script_path: Path,
@@ -83,7 +105,7 @@ def _run_excel_extractor(
         "-File",
         str(script_path),
         "-InputDirectory",
-        str(extracted_root / operator),
+        str(input_directory),
         "-OutputFile",
         str(output_path),
         "-Operator",
@@ -148,33 +170,61 @@ def _insert_extractor_records(
                 _finalize_workbook_quality(connection, current_workbook_id, label_counts, workbook_stats[current_workbook_id])
             current_file = record["file_name"]
             label_counts = Counter()
-            workbook_path = extracted_directory / record["operator"] / current_file
+            workbook_path = extracted_directory / current_file
             digest = file_sha256(workbook_path)
             months = record.get("months", [])
-            cursor = connection.execute(
+            imported_at = datetime.now(UTC).isoformat()
+            existing = connection.execute(
                 """
-                INSERT INTO source_workbooks(
-                    operator, source_archive, file_name, file_sha256, sheet_name,
-                    imported_at_utc, external_link_count, month_headers_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(file_sha256, sheet_name) DO UPDATE SET
-                    imported_at_utc = excluded.imported_at_utc,
-                    external_link_count = excluded.external_link_count,
-                    month_headers_json = excluded.month_headers_json
-                RETURNING id
+                SELECT id FROM source_workbooks
+                WHERE operator = ? AND lower(file_name) = lower(?) AND sheet_name = ?
+                ORDER BY id DESC LIMIT 1
                 """,
-                (
-                    record["operator"],
-                    record["source_archive"],
-                    current_file,
-                    digest,
-                    record["sheet_name"],
-                    datetime.now(UTC).isoformat(),
-                    int(record.get("external_link_count", 0)),
-                    json.dumps(months, sort_keys=True),
-                ),
-            )
-            current_workbook_id = int(cursor.fetchone()[0])
+                (record["operator"], current_file, record["sheet_name"]),
+            ).fetchone()
+            if existing:
+                current_workbook_id = int(existing[0])
+                connection.execute(
+                    """
+                    UPDATE source_workbooks
+                    SET source_archive = ?, file_sha256 = ?, imported_at_utc = ?,
+                        external_link_count = ?, month_headers_json = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        record["source_archive"],
+                        digest,
+                        imported_at,
+                        int(record.get("external_link_count", 0)),
+                        json.dumps(months, sort_keys=True),
+                        current_workbook_id,
+                    ),
+                )
+            else:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO source_workbooks(
+                        operator, source_archive, file_name, file_sha256, sheet_name,
+                        imported_at_utc, external_link_count, month_headers_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(file_sha256, sheet_name) DO UPDATE SET
+                        imported_at_utc = excluded.imported_at_utc,
+                        external_link_count = excluded.external_link_count,
+                        month_headers_json = excluded.month_headers_json
+                    RETURNING id
+                    """,
+                    (
+                        record["operator"],
+                        record["source_archive"],
+                        current_file,
+                        digest,
+                        record["sheet_name"],
+                        imported_at,
+                        int(record.get("external_link_count", 0)),
+                        json.dumps(months, sort_keys=True),
+                    ),
+                )
+                current_workbook_id = int(cursor.fetchone()[0])
             connection.execute("DELETE FROM observations WHERE source_workbook_id = ?", (current_workbook_id,))
             connection.execute("DELETE FROM quality_issues WHERE source_workbook_id = ?", (current_workbook_id,))
             if not months:
@@ -472,14 +522,13 @@ def ingest_archives(
     try:
         with tempfile.TemporaryDirectory(prefix="telecom-ai-ingest-") as temp_name:
             temp = Path(temp_name)
-            extracted = _extract_archives(archive_paths, temp / "workbooks")
-            if not extracted:
+            prepared = _prepare_sources(archive_paths, temp / "workbooks")
+            if not prepared:
                 raise ValueError("No supported Excel workbooks were found in the archives")
-            for archive in archive_paths:
-                operator = _operator_for_archive(archive)
-                output = temp / f"{operator}.ndjson"
-                _run_excel_extractor(temp / "workbooks", archive, operator, script_path, output)
-                _insert_extractor_records(connection, _load_records(output), temp / "workbooks")
+            for index, (source, input_directory, operator) in enumerate(prepared):
+                output = temp / f"{index:04d}-{operator}.ndjson"
+                _run_excel_extractor(input_directory, source, operator, script_path, output)
+                _insert_extractor_records(connection, _load_records(output), input_directory)
                 connection.commit()
         _global_quality_checks(connection)
         connection.commit()

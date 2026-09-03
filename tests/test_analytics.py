@@ -1,7 +1,7 @@
 import sqlite3
 import unittest
 
-from telecom_ai.analytics import analyze_question, chart_svg
+from telecom_ai.analytics import OPERATOR_COLOURS, analyze_question, chart_svg
 from telecom_ai.database import initialize
 from telecom_ai.ingest import metric_key, normalize_text
 from telecom_ai.openapi import action_schema
@@ -73,6 +73,19 @@ class AnalyticsTest(unittest.TestCase):
         operation = schema["paths"]["/api/v1/analysis/query"]["post"]
         self.assertEqual(operation["operationId"], "analyzeTelecomData")
         self.assertIn("apiKey", schema["components"]["securitySchemes"])
+
+    def test_operator_colours_are_stable(self):
+        self.assertEqual(OPERATOR_COLOURS["MTN"], "#ffcb05")
+        self.assertEqual(OPERATOR_COLOURS["AirtelTigo"], "#1976d2")
+        self.assertEqual(OPERATOR_COLOURS["Telecel"], "#e31b23")
+
+    def test_chart_series_include_operator_colours(self):
+        result = analyze_question(
+            self.connection,
+            "Compare MTN and AirtelTigo voice subscriptions from 2025 to July 2026",
+        )
+        colours = {item["name"]: item["colour"] for item in result["chart"]["series"]}
+        self.assertEqual(colours, {"AirtelTigo": "#1976d2", "MTN": "#ffcb05"})
 
 
 if __name__ == "__main__":

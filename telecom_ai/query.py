@@ -90,6 +90,8 @@ def _operators(question: str) -> list[str]:
         result.append("MTN")
     if "airteltigo" in lower or "airtel tigo" in lower or re.search(r"\bairtel\b", lower) or re.search(r"\bAT\b", question):
         result.append("AirtelTigo")
+    if "telecel" in lower or "vodafone" in lower:
+        result.append("Telecel")
     return result
 
 

@@ -3,24 +3,24 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Local evidence-grounded query interface for MTN and AirtelTigo monthly telecom data.">
-  <title>Network Intelligence Desk</title>
-  <link rel="stylesheet" href="/static/styles.css">
-  <script src="/static/app.js" defer></script>
+  <meta name="description" content="NCA Adinkra Omega evidence-grounded regulatory intelligence copilot for monthly Ghana telecom data.">
+  <title>NCA Adinkra Omega | Regulatory Intelligence Copilot</title>
+  <link rel="stylesheet" href="/static/styles.css?v=4">
+  <script src="/static/charts.js?v=4" defer></script>
+  <script src="/static/app.js?v=4" defer></script>
 </head>
 <body>
   <div class="page-shell">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Network Intelligence Desk home">
-        <span class="brand-mark" aria-hidden="true"><span>NI</span></span>
+      <a class="brand" href="/" aria-label="NCA Adinkra Omega home">
+        <span class="brand-logo-wrap"><img class="brand-logo" src="/static/nca-logo.png?v=3" alt="National Communications Authority logo"></span>
         <span class="brand-copy">
-          <strong>Network Intelligence</strong>
-          <small>Evidence desk</small>
+          <strong>Adinkra Omega</strong>
+          <small>Regulatory intelligence</small>
         </span>
       </a>
       <div class="topbar-actions">
-        <a class="gpt-link" href="https://chatgpt.com/g/g-6a7d722f50e88191ad84a50a93fa66f3-adinkra-o-nca-regulatory-intelligence-copilot" target="_blank" rel="noopener noreferrer">Open Adinkra &#937;</a>
-        <span class="privacy-note"><span class="lock-icon" aria-hidden="true"></span>Local workspace</span>
+        <span class="copilot-pill" id="copilotStatus"><span class="omega-icon" aria-hidden="true">&#937;</span><span>Checking copilot</span></span>
         <span class="status-pill" id="serverStatus"><span class="status-dot"></span><span>Connecting</span></span>
       </div>
     </header>
@@ -28,9 +28,9 @@
     <main>
       <section class="hero" aria-labelledby="pageTitle">
         <div class="hero-copy">
-          <p class="eyebrow">Telecom data, grounded in source evidence</p>
-          <h1 id="pageTitle">Ask the network data.</h1>
-          <p class="hero-description">Explore MTN and AirtelTigo monthly reports through a governed query interface. Every answer traces back to its original workbook and cell.</p>
+          <p class="eyebrow">NCA regulatory intelligence, grounded in source evidence</p>
+          <h1 id="pageTitle">Ask Adinkra &#937;.</h1>
+          <p class="hero-description">Analyse MTN, AirtelTigo, and Telecel monthly reports with the NCA Adinkra Omega Copilot. Every answer is calculated locally first and traces back to its original workbook and cell.</p>
         </div>
         <div class="hero-signal" aria-hidden="true">
           <span class="signal-ring ring-one"></span>
@@ -67,8 +67,8 @@
         <section class="query-panel" aria-labelledby="queryTitle">
           <div class="panel-heading">
             <div>
-              <p class="section-kicker">Analysis workspace</p>
-              <h2 id="queryTitle">What would you like to know?</h2>
+              <p class="section-kicker">NCA Adinkra Omega Copilot</p>
+              <h2 id="queryTitle">What would you like Adinkra to analyse?</h2>
             </div>
             <span class="shortcut-hint"><kbd>Ctrl</kbd><span>+</span><kbd>Enter</kbd></span>
           </div>
@@ -79,11 +79,12 @@
             <div class="query-controls">
               <span class="character-count"><span id="characterCount">0</span>/1000</span>
               <button type="submit" class="ask-button" id="askButton">
-                <span class="button-label">Analyse data</span>
+                <span class="button-label">Ask Adinkra</span>
                 <span class="button-arrow" aria-hidden="true">→</span>
               </button>
             </div>
           </form>
+          <p class="transfer-note"><span aria-hidden="true">&#9432;</span> Asking Adinkra sends your question and a minimized set of aggregate analytical evidence to OpenAI. Do not enter personal, subscriber-level, or secret information. <a href="/privacy">Data-use details</a></p>
 
           <div class="suggestions" aria-labelledby="suggestionTitle">
             <p id="suggestionTitle">Try a guided question</p>
@@ -105,20 +106,21 @@
 
             <div class="loading-result" id="loadingResult" hidden>
               <span class="loader" aria-hidden="true"></span>
-              <div><strong>Reading the evidence</strong><span>Matching metrics and calculating from source records…</span></div>
+              <div><strong>Adinkra is reading the evidence</strong><span>Calculating locally, then preparing the grounded response…</span></div>
             </div>
 
             <article class="answer-card" id="answerCard" hidden tabindex="-1">
               <div class="answer-header">
                 <div>
                   <p class="section-kicker" id="intentLabel">Direct answer</p>
-                  <h3>Analysis result</h3>
+                  <h3>Adinkra response</h3>
                 </div>
                 <button type="button" class="icon-button" id="copyButton" title="Copy answer" aria-label="Copy answer">
                   <span aria-hidden="true">□</span>
                 </button>
               </div>
               <p class="answer-text" id="answerText"></p>
+              <p class="copilot-message" id="copilotMessage" hidden></p>
               <div class="governance-row" id="governanceRow"></div>
 
               <section class="analysis-section" id="analysisSection" hidden aria-labelledby="analysisTitle">
@@ -129,7 +131,29 @@
                   </div>
                   <span class="evidence-count" id="analysisId"></span>
                 </div>
-                <div class="chart-frame" id="chartFrame" role="img" aria-label="Telecom metric trend chart"></div>
+                <div class="chart-toolbar">
+                  <div class="chart-type-list" role="group" aria-label="Choose chart type">
+                    <button type="button" class="chart-type-button" data-chart-type="line" aria-pressed="true">Line</button>
+                    <button type="button" class="chart-type-button" data-chart-type="bar" aria-pressed="false">Bars</button>
+                    <button type="button" class="chart-type-button" data-chart-type="area" aria-pressed="false">Area</button>
+                    <button type="button" class="chart-type-button" data-chart-type="radar" aria-pressed="false">Radar</button>
+                    <button type="button" class="chart-type-button" data-chart-type="heatmap" aria-pressed="false">Heatmap</button>
+                    <button type="button" class="chart-type-button" data-chart-type="gauge" aria-pressed="false">Gauge</button>
+                    <button type="button" class="chart-type-button" data-chart-type="donut" aria-pressed="false">Donut</button>
+                  </div>
+                  <button type="button" class="chart-download-button" id="chartDownloadButton" title="Download chart as SVG" aria-label="Download chart as SVG"><span aria-hidden="true">&#8595;</span> Download SVG</button>
+                </div>
+                <div class="chart-navigation" role="group" aria-label="Chart time navigation">
+                  <button type="button" id="chartPanLeft" aria-label="Show earlier reporting periods" title="Earlier periods">&#8592; Earlier</button>
+                  <button type="button" id="chartZoomIn" aria-label="Zoom in on fewer reporting periods" title="Zoom in">+ Zoom in</button>
+                  <button type="button" id="chartZoomOut" aria-label="Zoom out to more reporting periods" title="Zoom out">&#8722; Zoom out</button>
+                  <button type="button" id="chartPanRight" aria-label="Show later reporting periods" title="Later periods">Later &#8594;</button>
+                  <button type="button" id="chartReset" aria-label="Reset chart view">Reset view</button>
+                  <span id="chartWindowStatus" role="status" aria-live="polite"></span>
+                </div>
+                <div class="chart-frame" id="chartFrame" role="region" aria-label="Interactive telecom metric chart"></div>
+                <p class="chart-caption" id="chartCaption"></p>
+                <div class="chart-selection" id="chartSelection" hidden role="status" aria-live="polite"></div>
                 <div class="stat-grid" id="statGrid"></div>
                 <ul class="insight-list" id="insightList"></ul>
               </section>
@@ -170,7 +194,9 @@
             <h2>Monthly operator reports</h2>
             <p>Structured observations from submitted Excel workbooks, retaining formula and cell provenance.</p>
             <div class="operator-list" id="operatorList">
-              <span>MTN</span><span>AirtelTigo</span>
+              <span class="operator-badge" style="--operator-color:#ffcb05">MTN</span>
+              <span class="operator-badge" style="--operator-color:#1976d2">AirtelTigo</span>
+              <span class="operator-badge awaiting-data" style="--operator-color:#e31b23" title="No imported data yet">Telecel</span>
             </div>
             <dl class="context-facts">
               <div><dt>Numeric records</dt><dd id="numericCount">—</dd></div>
@@ -178,14 +204,34 @@
             </dl>
           </section>
 
+          <section class="context-card import-card" aria-labelledby="importTitle">
+            <div class="import-heading">
+              <span class="upload-icon" aria-hidden="true">&#8593;</span>
+              <div><p class="section-kicker">Ongoing collection</p><h2 id="importTitle">Add monthly data</h2></div>
+            </div>
+            <p>Import a new operator workbook or ZIP archive. Existing records remain available; a corrected workbook with the same name replaces its earlier version.</p>
+            <form id="importForm" class="import-form">
+              <label for="importOperator">Operator</label>
+              <select id="importOperator" name="operator" required>
+                <option value="MTN">MTN</option>
+                <option value="AirtelTigo">AirtelTigo</option>
+                <option value="Telecel">Telecel</option>
+              </select>
+              <label for="importFile">Monthly submission</label>
+              <input id="importFile" name="file" type="file" accept=".zip,.xls,.xlsx,.xlsb" required>
+              <button type="submit" class="import-button" id="importButton">Import data</button>
+            </form>
+            <p class="import-status" id="importStatus" role="status" aria-live="polite">ZIP, XLS, XLSX, or XLSB · maximum 250 MB</p>
+          </section>
+
           <section class="context-card trust-card">
             <div class="trust-heading">
               <span class="shield-icon" aria-hidden="true">◇</span>
-              <div><p class="section-kicker">Trust boundary</p><h2>Local by design</h2></div>
+              <div><p class="section-kicker">Trust boundary</p><h2>Grounded by design</h2></div>
             </div>
             <ul class="trust-list">
-              <li><span>✓</span>Queries run on this computer</li>
-              <li><span>✓</span>No external model or analytics call</li>
+              <li><span>✓</span>All calculations run locally</li>
+              <li><span>✓</span>Only minimized aggregates reach OpenAI</li>
               <li><span>✓</span>Source evidence stays attached</li>
               <li><span>✓</span>Human authority remains final</li>
             </ul>
@@ -201,8 +247,8 @@
     </main>
 
     <footer>
-      <span>Network Intelligence Desk</span>
-      <span>Local evidence service · Human-governed decisions</span>
+      <span>NCA Adinkra Omega Regulatory Intelligence Copilot</span>
+      <span>Local evidence engine · OpenAI narrative layer · Human-governed decisions</span>
     </footer>
   </div>
 </body>

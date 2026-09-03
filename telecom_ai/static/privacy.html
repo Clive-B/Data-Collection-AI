@@ -15,8 +15,9 @@
       <p>This service processes questions against an approved telecom reporting database. It returns only the observations, aggregates, source references, and quality warnings required to answer a question.</p>
       <h2>Information processed</h2>
       <p>Question text, selected analytical parameters, aggregated telecom observations, and minimized audit metadata may be processed. Do not submit subscriber-level information, credentials, or personal data.</p>
-      <h2>External GPT Action</h2>
-      <p>When the service is invoked through Adinkra Omega in ChatGPT, the question and returned structured result are transferred through that external service. Deployment owners must approve the hosting region, retention configuration, and cross-border transfer basis before enabling the Action.</p>
+      <h2>Embedded NCA Adinkra Omega Copilot</h2>
+      <p>When you ask the embedded copilot, your question and a minimized subset of aggregate analytical evidence are sent server-to-server to the OpenAI Responses API. The OpenAI API key remains on the server and is never sent to browser code. Requests set response storage to false, although applicable OpenAI abuse-monitoring and data-control terms may still apply.</p>
+      <p>The local deterministic engine remains the numerical source of truth. Governance holds, credential-disclosure requests, and live-network action requests are not sent to OpenAI. Deployment owners must approve the hosting region, OpenAI project controls, permitted data classes, and any cross-border transfer basis before production activation.</p>
       <h2>Human authority</h2>
       <p>Results support analysis but do not authorize regulatory enforcement or live-network changes. A designated human remains responsible for consequential decisions.</p>
       <h2>Current enforcement status</h2>

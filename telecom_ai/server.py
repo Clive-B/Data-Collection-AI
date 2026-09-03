@@ -4,19 +4,26 @@ import hmac
 import json
 import mimetypes
 import os
+import tempfile
+import threading
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .analytics import analyze_question, metric_catalogue, quality_summary
 from .database import connect
+from .ingest import ingest_archives
 from .openapi import action_schema
+from .openai_client import OpenAIConfig, enrich_with_copilot
 from .query import ask
 
 
 STATIC_ROOT = Path(__file__).resolve().with_name("static")
 MAX_REQUEST_BYTES = 16_384
+MAX_UPLOAD_BYTES = 250 * 1024 * 1024
+SUPPORTED_OPERATORS = ("MTN", "AirtelTigo", "Telecel")
+SUPPORTED_UPLOAD_SUFFIXES = {".zip", ".xls", ".xlsx", ".xlsb"}
 
 
 def serve(database_path: str | Path, host: str = "127.0.0.1", port: int = 8765) -> None:
@@ -25,6 +32,8 @@ def serve(database_path: str | Path, host: str = "127.0.0.1", port: int = 8765) 
     public_base_url = os.environ.get(
         "TELECOM_PUBLIC_BASE_URL", "https://YOUR-APPROVED-AFRICAN-HOST.example"
     ).strip()
+    openai_config = OpenAIConfig.from_environment()
+    ingest_lock = threading.Lock()
     if host not in {"127.0.0.1", "localhost", "::1"} and not api_key:
         raise RuntimeError("TELECOM_API_KEY is required when binding beyond localhost.")
 
@@ -108,6 +117,7 @@ def serve(database_path: str | Path, host: str = "127.0.0.1", port: int = 8765) 
                             "SELECT DISTINCT operator FROM observations ORDER BY operator"
                         )
                     ],
+                    "supported_operators": list(SUPPORTED_OPERATORS),
                     "period": {
                         "first": connection.execute("SELECT MIN(period) FROM observations").fetchone()[0],
                         "last": connection.execute("SELECT MAX(period) FROM observations").fetchone()[0],
@@ -119,10 +129,16 @@ def serve(database_path: str | Path, host: str = "127.0.0.1", port: int = 8765) 
                 "status": "ok",
                 "service": "adinkra-omega-telecom-analytics",
                 "authentication_enforced": bool(api_key),
-                "local_processing": True,
-                "external_transfer": "only_when_called_through_an_external_action",
+                "local_analytics_processing": True,
+                "external_transfer": "only_when_api_copilot_is_called_and_governance_allows",
                 "residency_verified": False,
                 "human_authority": "required_for_consequential_decisions",
+                "copilot": {
+                    "provider": "openai",
+                    "configured": openai_config.configured,
+                    "model": openai_config.model if openai_config.configured else None,
+                    "response_storage_requested": False,
+                },
             }
 
         def _read_question(self) -> str:
@@ -137,6 +153,24 @@ def serve(database_path: str | Path, host: str = "127.0.0.1", port: int = 8765) 
                 return question.strip()
             except (ValueError, json.JSONDecodeError, UnicodeDecodeError) as error:
                 raise ValueError(str(error)) from error
+
+        def _read_upload(self, destination: Path) -> None:
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+            except ValueError as error:
+                raise ValueError("invalid_content_length") from error
+            if length <= 0:
+                raise ValueError("file_required")
+            if length > MAX_UPLOAD_BYTES:
+                raise ValueError("file_too_large")
+            remaining = length
+            with destination.open("wb") as output:
+                while remaining:
+                    chunk = self.rfile.read(min(1024 * 1024, remaining))
+                    if not chunk:
+                        raise ValueError("incomplete_upload")
+                    output.write(chunk)
+                    remaining -= len(chunk)
 
         def do_GET(self) -> None:  # noqa: N802
             parsed = urlparse(self.path)
@@ -185,7 +219,56 @@ def serve(database_path: str | Path, host: str = "127.0.0.1", port: int = 8765) 
             path = urlparse(self.path).path
             if not self._authorized(path):
                 return
-            if path not in {"/ask", "/api/ask", "/api/analysis", "/api/v1/analysis/query"}:
+            if path == "/api/data/import":
+                operator = self.headers.get("X-Operator", "").strip()
+                original_name = Path(unquote(self.headers.get("X-Filename", ""))).name
+                suffix = Path(original_name).suffix.casefold()
+                if operator not in SUPPORTED_OPERATORS:
+                    self._json(HTTPStatus.BAD_REQUEST, {"error": "invalid_operator"})
+                    return
+                if not original_name or suffix not in SUPPORTED_UPLOAD_SUFFIXES:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "unsupported_file", "message": "Upload a ZIP, XLS, XLSX, or XLSB file."},
+                    )
+                    return
+                if not ingest_lock.acquire(blocking=False):
+                    self._json(
+                        HTTPStatus.CONFLICT,
+                        {"error": "import_in_progress", "message": "Another data import is already running."},
+                    )
+                    return
+                try:
+                    with tempfile.TemporaryDirectory(prefix="adinkra-upload-") as temp_name:
+                        upload_path = Path(temp_name) / f"{operator} - {original_name}"
+                        self._read_upload(upload_path)
+                        result = ingest_archives(database, [upload_path])
+                    result.update(
+                        {
+                            "status": "imported",
+                            "operator": operator,
+                            "file_name": original_name,
+                            "message": f"{original_name} was imported for {operator}.",
+                        }
+                    )
+                    self._json(HTTPStatus.OK, result)
+                except ValueError as error:
+                    self._json(
+                        HTTPStatus.BAD_REQUEST,
+                        {"error": "invalid_import", "message": str(error)},
+                    )
+                except Exception:
+                    self._json(
+                        HTTPStatus.INTERNAL_SERVER_ERROR,
+                        {
+                            "error": "import_failed",
+                            "message": "The workbook could not be imported. Confirm the file opens in Excel and matches the reporting template.",
+                        },
+                    )
+                finally:
+                    ingest_lock.release()
+                return
+            if path not in {"/ask", "/api/ask", "/api/analysis", "/api/copilot", "/api/v1/analysis/query"}:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
                 return
             try:
@@ -197,11 +280,16 @@ def serve(database_path: str | Path, host: str = "127.0.0.1", port: int = 8765) 
                 )
                 return
             with connect(database) as connection:
-                response = (
-                    analyze_question(connection, question)
-                    if path in {"/api/analysis", "/api/v1/analysis/query"}
-                    else ask(connection, question)
-                )
+                if path == "/api/copilot":
+                    response = enrich_with_copilot(
+                        question,
+                        analyze_question(connection, question),
+                        openai_config,
+                    )
+                elif path in {"/api/analysis", "/api/v1/analysis/query"}:
+                    response = analyze_question(connection, question)
+                else:
+                    response = ask(connection, question)
                 if path == "/api/v1/analysis/query":
                     response.pop("chart_svg", None)
                 self._json(HTTPStatus.OK, response)
